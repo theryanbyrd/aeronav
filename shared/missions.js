@@ -10,7 +10,7 @@ export const MISSIONS = [
     region: 'USA',
     difficulty: 'Medium',
     par: 240,
-    start: { pos: [-74.0521, 40.6837], alt: 420 },
+    start: { pos: [-74.0521, 40.6837], alt: 280 },
     checkpoints: [
       { name: 'Statue of Liberty', pos: [-74.0445, 40.6892] },
       { name: 'One World Trade Center', pos: [-74.0134, 40.7127] },
@@ -27,7 +27,7 @@ export const MISSIONS = [
     region: 'France',
     difficulty: 'Easy',
     par: 200,
-    start: { pos: [2.2855, 48.853], alt: 400 },
+    start: { pos: [2.2855, 48.853], alt: 260 },
     checkpoints: [
       { name: 'Eiffel Tower', pos: [2.2945, 48.8584] },
       { name: 'Arc de Triomphe', pos: [2.295, 48.8738] },
@@ -43,7 +43,7 @@ export const MISSIONS = [
     region: 'Japan',
     difficulty: 'Hard',
     par: 280,
-    start: { pos: [139.7354, 35.6486], alt: 450 },
+    start: { pos: [139.7354, 35.6486], alt: 300 },
     checkpoints: [
       { name: 'Tokyo Tower', pos: [139.7454, 35.6586] },
       { name: 'Shibuya Crossing', pos: [139.7005, 35.6595] },
@@ -59,7 +59,7 @@ export const MISSIONS = [
     region: 'UK',
     difficulty: 'Easy',
     par: 180,
-    start: { pos: [-0.1416, 51.4975], alt: 380 },
+    start: { pos: [-0.1416, 51.4975], alt: 250 },
     checkpoints: [
       { name: 'Big Ben', pos: [-0.1246, 51.5007] },
       { name: 'London Eye', pos: [-0.1196, 51.5033] },
@@ -75,7 +75,7 @@ export const MISSIONS = [
     region: 'USA',
     difficulty: 'Medium',
     par: 230,
-    start: { pos: [-122.4983, 37.8129], alt: 450 },
+    start: { pos: [-122.4983, 37.8129], alt: 300 },
     checkpoints: [
       { name: 'Golden Gate Bridge', pos: [-122.4783, 37.8199] },
       { name: 'Palace of Fine Arts', pos: [-122.4486, 37.8029] },
@@ -92,7 +92,7 @@ export const MISSIONS = [
     region: 'UAE',
     difficulty: 'Hard',
     par: 320,
-    start: { pos: [55.115, 25.075], alt: 500 },
+    start: { pos: [55.115, 25.075], alt: 320 },
     checkpoints: [
       { name: 'Dubai Marina', pos: [55.142, 25.0805] },
       { name: 'Palm Jumeirah', pos: [55.139, 25.1124] },

@@ -253,8 +253,8 @@ export class FlightEngine {
 
     this.map.flyTo({
       center: mission.start.pos,
-      zoom: 15.2,
-      pitch: 72,
+      zoom: 15.8,
+      pitch: 76,
       bearing: this.heading,
       duration: 4200,
       essential: true,
@@ -347,7 +347,7 @@ export class FlightEngine {
     } catch {
       ground = 0
     }
-    this.alt = clamp(this.alt, ground + 30, 6000)
+    this.alt = clamp(this.alt, ground + 25, 4500)
 
     // Advance position along heading
     const meters = this.speed * dt
@@ -358,8 +358,9 @@ export class FlightEngine {
     ]
 
     // Camera: true camera-position control when available (MapLibre v5+),
-    // otherwise approximate altitude with zoom.
-    const pitch = clamp(80 + climb * 5, 62, 92)
+    // otherwise approximate altitude with zoom. Base pitch sits near the
+    // horizon for a cockpit view; climbing/diving tilts the nose.
+    const pitch = clamp(85 + climb * 5, 64, 93)
     if (typeof this.map.calculateCameraOptionsFromCameraLngLatAltRotation === 'function') {
       try {
         const cam = this.map.calculateCameraOptionsFromCameraLngLatAltRotation(
@@ -405,7 +406,7 @@ export class FlightEngine {
     this.map.jumpTo({
       center: this.pos,
       bearing: this.heading,
-      pitch: Math.min(80, this.map.getMaxPitch()),
+      pitch: Math.min(85, this.map.getMaxPitch()),
       zoom: 24.1 - Math.log2(Math.max(this.alt, 40)),
     })
   }
@@ -414,13 +415,39 @@ export class FlightEngine {
 // ---- map bootstrap ------------------------------------------------------
 
 export function createMap(container) {
-  // OpenFreeMap vector tiles (no API key) + AWS Open Data terrain tiles.
+  // Satellite imagery base (Esri World Imagery, keyless) + OpenFreeMap vector
+  // tiles for 3D building extrusions + AWS Open Data terrain tiles.
   const map = new maplibregl.Map({
     container,
-    style: 'https://tiles.openfreemap.org/styles/liberty',
+    style: {
+      version: 8,
+      sources: {
+        satellite: {
+          type: 'raster',
+          tiles: [
+            'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+          ],
+          tileSize: 256,
+          maxzoom: 19,
+          attribution:
+            'Imagery © Esri, Maxar, Earthstar Geographics, and the GIS User Community',
+        },
+        openmaptiles: {
+          type: 'vector',
+          url: 'https://tiles.openfreemap.org/planet',
+        },
+      },
+      layers: [
+        { id: 'background', type: 'background', paint: { 'background-color': '#0a1320' } },
+        { id: 'satellite', type: 'raster', source: 'satellite' },
+      ],
+    },
     center: [-30, 25],
     zoom: 1.9,
     maxPitch: 95,
+    // Required so the flight camera's explicit elevation is honored instead of
+    // being recomputed from the terrain under the screen center.
+    centerClampedToGround: false,
     attributionControl: { compact: true },
     canvasContextAttributes: { antialias: true },
   })
@@ -444,9 +471,9 @@ export function createMap(container) {
 
     try {
       map.setSky({
-        'sky-color': '#7fb8e6',
-        'horizon-color': '#eaf4ff',
-        'fog-color': '#dfeaf5',
+        'sky-color': '#6fb0e8',
+        'horizon-color': '#dceaf8',
+        'fog-color': '#c9d9ea',
         'sky-horizon-blend': 0.6,
         'horizon-fog-blend': 0.6,
         'fog-ground-blend': 0.85,
@@ -454,29 +481,28 @@ export function createMap(container) {
       })
     } catch { /* sky unsupported */ }
 
-    // Ensure 3D buildings: add a fill-extrusion layer if the style lacks one.
-    const style = map.getStyle()
-    const hasExtrusion = style.layers.some((l) => l.type === 'fill-extrusion')
-    if (!hasExtrusion) {
-      const vectorSource = Object.entries(style.sources).find(([, s]) => s.type === 'vector')?.[0]
-      if (vectorSource) {
-        try {
-          map.addLayer({
-            id: 'aeronav-3d-buildings',
-            type: 'fill-extrusion',
-            source: vectorSource,
-            'source-layer': 'building',
-            minzoom: 13,
-            paint: {
-              'fill-extrusion-color': '#cfd6e0',
-              'fill-extrusion-height': ['coalesce', ['get', 'render_height'], 12],
-              'fill-extrusion-base': ['coalesce', ['get', 'render_min_height'], 0],
-              'fill-extrusion-opacity': 0.92,
-            },
-          })
-        } catch { /* building layer unavailable in this style */ }
-      }
-    }
+    // 3D buildings extruded over the satellite imagery, tinted to blend in.
+    try {
+      map.addLayer({
+        id: 'aeronav-3d-buildings',
+        type: 'fill-extrusion',
+        source: 'openmaptiles',
+        'source-layer': 'building',
+        minzoom: 13,
+        paint: {
+          'fill-extrusion-color': [
+            'interpolate', ['linear'],
+            ['coalesce', ['get', 'render_height'], 12],
+            0, '#c9cdd4',
+            80, '#aeb6c2',
+            300, '#8e9aac',
+          ],
+          'fill-extrusion-height': ['coalesce', ['get', 'render_height'], 12],
+          'fill-extrusion-base': ['coalesce', ['get', 'render_min_height'], 0],
+          'fill-extrusion-opacity': 0.96,
+        },
+      })
+    } catch { /* building layer unavailable */ }
   })
 
   return map

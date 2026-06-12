@@ -21,6 +21,15 @@ No API keys required.
 
 Fly through the cyan beacon beams in order. Beat the par time for a score bonus.
 
+## Living world
+
+- **Weather** — each mission rolls clear / scattered / overcast / fog conditions:
+  matching sky + atmospheric haze, and drifting volumetric clouds you can fly
+  straight through (full cockpit whiteout inside).
+- **NPCs** — cars drive along real OSM roads pulled from the vector tiles,
+  AI air traffic crosses at altitude, bird flocks wander below you, and trees
+  are scattered inside real parks and woodland polygons.
+
 ## Stack
 
 - **React 18 + Vite** — UI, HUD, menus

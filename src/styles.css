@@ -20,6 +20,15 @@ html, body, #root, .app {
 .map { position: absolute; inset: 0; }
 .map canvas { outline: none; }
 
+.cloud-fx {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.96) 0%, rgba(228, 234, 240, 0.88) 100%);
+  transition: opacity 0.15s linear;
+}
+
 .vignette {
   position: absolute;
   inset: 0;
@@ -223,6 +232,7 @@ kbd {
 .hud-label { font-size: 11px; letter-spacing: 0.15em; color: rgba(232, 244, 255, 0.55); }
 .overpar { color: #ff5d73; }
 .good { color: var(--green); }
+.wx { text-transform: uppercase; letter-spacing: 0.12em; color: var(--amber); }
 
 .hud-target {
   position: absolute;

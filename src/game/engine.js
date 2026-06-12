@@ -4,43 +4,16 @@ import maplibregl from 'maplibre-gl'
 // loop, arcade flight physics, checkpoint logic, and scoring. React reads a
 // snapshot via subscribe(); it never touches the map directly.
 
-const EARTH_M_PER_DEG_LAT = 111320
-
-const toRad = (d) => (d * Math.PI) / 180
-const toDeg = (r) => (r * 180) / Math.PI
-const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v))
-const lerp = (a, b, t) => a + (b - a) * t
-
-export function distanceM(a, b) {
-  const dLat = toRad(b[1] - a[1])
-  const dLng = toRad(b[0] - a[0])
-  const la1 = toRad(a[1])
-  const la2 = toRad(b[1])
-  const h =
-    Math.sin(dLat / 2) ** 2 + Math.cos(la1) * Math.cos(la2) * Math.sin(dLng / 2) ** 2
-  return 6371000 * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h))
-}
-
-export function bearingDeg(a, b) {
-  const la1 = toRad(a[1])
-  const la2 = toRad(b[1])
-  const dLng = toRad(b[0] - a[0])
-  const y = Math.sin(dLng) * Math.cos(la2)
-  const x = Math.cos(la1) * Math.sin(la2) - Math.sin(la1) * Math.cos(la2) * Math.cos(dLng)
-  return (toDeg(Math.atan2(y, x)) + 360) % 360
-}
-
-function circlePolygon([lng, lat], radiusM, steps = 28) {
-  const ring = []
-  for (let i = 0; i <= steps; i++) {
-    const t = (i / steps) * Math.PI * 2
-    ring.push([
-      lng + (Math.cos(t) * radiusM) / (EARTH_M_PER_DEG_LAT * Math.cos(toRad(lat))),
-      lat + (Math.sin(t) * radiusM) / EARTH_M_PER_DEG_LAT,
-    ])
-  }
-  return { type: 'Polygon', coordinates: [ring] }
-}
+import { Ambient } from './ambient.js'
+import {
+  EARTH_M_PER_DEG_LAT,
+  toRad,
+  clamp,
+  lerp,
+  distanceM,
+  bearingDeg,
+  circlePolygon,
+} from './geo.js'
 
 const CAPTURE_RADIUS_M = 170
 const BEAM_HEIGHT_M = 1300
@@ -65,6 +38,7 @@ export class FlightEngine {
     this.messageUntil = 0
     this.lastT = null
     this.audio = null
+    this.ambient = null
     this.snapshot = this.buildSnapshot()
 
     this.onKeyDown = (e) => {
@@ -111,6 +85,8 @@ export class FlightEngine {
       targetName: target?.name ?? null,
       targetDist: target ? distanceM(this.pos, target.pos) : 0,
       targetBearing: target ? bearingDeg(this.pos, target.pos) : 0,
+      weather: this.ambient?.weather ?? null,
+      cloudFx: this.ambient?.cloudFx ?? 0,
     }
   }
 
@@ -248,6 +224,10 @@ export class FlightEngine {
     this.roll = 0
     this.phase = 'intro'
     this.ensureLayers()
+    try {
+      this.ambient = this.ambient || new Ambient(this.map)
+      this.ambient.start(mission.start.pos)
+    } catch { /* ambient world is decorative; never block the mission */ }
     this.refreshCheckpointFeatures()
     this.notify()
 
@@ -263,7 +243,8 @@ export class FlightEngine {
       if (this.phase !== 'intro') return
       this.phase = 'flying'
       this.lastT = null
-      this.flash(`Mission start — fly to ${mission.checkpoints[0].name}`, 3500)
+      const wx = this.ambient?.weather ? ` · WX ${this.ambient.weather.toUpperCase()}` : ''
+      this.flash(`Mission start — fly to ${mission.checkpoints[0].name}${wx}`, 3500)
       this.beep(660, 0.12)
       this.notify()
     })
@@ -272,6 +253,7 @@ export class FlightEngine {
   abortToMenu() {
     this.phase = 'menu'
     this.mission = null
+    this.ambient?.clear()
     this.map.getSource('aeronav-cps')?.setData({ type: 'FeatureCollection', features: [] })
     this.map.getSource('aeronav-route')?.setData({ type: 'FeatureCollection', features: [] })
     this.map.flyTo({ center: [-30, 25], zoom: 1.9, pitch: 0, bearing: 0, roll: 0, duration: 3000 })
@@ -397,6 +379,7 @@ export class FlightEngine {
       }
     }
     this.refreshRoute()
+    this.ambient?.update(dt, this.pos, this.alt, this.heading)
 
     this.elapsed += dt
     this.notify()
@@ -503,6 +486,41 @@ export function createMap(container) {
         },
       })
     } catch { /* building layer unavailable */ }
+
+    // Near-invisible layers whose only job is to load + expose real road and
+    // park/woodland geometry for the ambient NPC system to query.
+    try {
+      map.addLayer({
+        id: 'amb-roads-q',
+        type: 'line',
+        source: 'openmaptiles',
+        'source-layer': 'transportation',
+        minzoom: 11,
+        filter: [
+          'in',
+          ['get', 'class'],
+          ['literal', ['motorway', 'trunk', 'primary', 'secondary', 'tertiary', 'minor', 'residential']],
+        ],
+        paint: { 'line-opacity': 0.01, 'line-width': 1 },
+      })
+      map.addLayer({
+        id: 'amb-park-q',
+        type: 'fill',
+        source: 'openmaptiles',
+        'source-layer': 'park',
+        minzoom: 11,
+        paint: { 'fill-opacity': 0.01 },
+      })
+      map.addLayer({
+        id: 'amb-green-q',
+        type: 'fill',
+        source: 'openmaptiles',
+        'source-layer': 'landcover',
+        minzoom: 11,
+        filter: ['in', ['get', 'class'], ['literal', ['grass', 'wood']]],
+        paint: { 'fill-opacity': 0.01 },
+      })
+    } catch { /* query layers are best-effort */ }
   })
 
   return map

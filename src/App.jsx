@@ -38,6 +38,9 @@ export default function App() {
   return (
     <div className="app">
       <div ref={mapRef} className="map" />
+      {snap && (snap.cloudFx ?? 0) > 0.015 && (
+        <div className="cloud-fx" style={{ opacity: Math.min(snap.cloudFx, 0.93) }} />
+      )}
       <div className="vignette" />
       {phase === 'menu' && (
         <Menu

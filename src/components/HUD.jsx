@@ -50,6 +50,12 @@ export default function HUD({ snap }) {
             {snap.cpIndex + 1} / {snap.total}
           </span>
         </div>
+        {snap.weather && (
+          <div className="hud-row">
+            <span className="hud-label">WX</span>
+            <span className="wx">{snap.weather}</span>
+          </div>
+        )}
       </div>
 
       <div className="hud-target panel">
